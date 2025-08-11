@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const gameContainer = document.getElementById('game-container');
     const gameCanvas = document.getElementById('game-canvas');
     const gameCtx = gameCanvas.getContext('2d');
     const nextCanvas = document.getElementById('next-block-canvas');
@@ -7,7 +8,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const levelElement = document.getElementById('level');
     const startScreen = document.getElementById('start-screen');
     const startButton = document.getElementById('start-button');
-
     // --- ゲーム設定 ---
     const COLS = 10;
     const ROWS = 20;
@@ -39,29 +39,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- 初期化 ---
     function init() {
+        setVhVariable();
         resizeCanvas();
         resetGame();
         // 最初のゲームループはスタートボタンが押されてから開始
         // gameLoop();
     }
 
+    // モバイルブラウザの100vh問題を解決するための関数
+    function setVhVariable() {
+        let vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+    }
+
     function resizeCanvas() {
-        const gameContainer = document.getElementById('game-container');
         const infoPanel = document.getElementById('info-panel');
     
         const containerHeight = gameContainer.clientHeight - infoPanel.clientHeight;
         const containerWidth = gameContainer.clientWidth;
 
-        const tileRatio = Math.min(containerWidth / COLS, containerHeight / ROWS);
-        TILE_SIZE = Math.floor(tileRatio);
+        TILE_SIZE = Math.floor(Math.min(containerWidth / COLS, containerHeight / ROWS));
 
         gameCanvas.width = COLS * TILE_SIZE;
         gameCanvas.height = ROWS * TILE_SIZE;
+        // 見切れ対策: canvasのCSSサイズをJSで設定
+        gameCanvas.style.width = `${gameCanvas.width}px`;
+        gameCanvas.style.height = `${gameCanvas.height}px`;
 
-        nextCanvas.width = TILE_SIZE * 4;
-        nextCanvas.height = TILE_SIZE * 4;
+        // NEXTブロック用のサイズ設定
+        const nextTileSize = Math.floor(TILE_SIZE * 0.6);
+        nextCanvas.width = nextTileSize * 4;
+        nextCanvas.height = nextTileSize * 4;
 
         render();
+        renderNextBlock(); // リサイズ時にNEXTブロックも再描画
     }
 
     function resetGame() {
@@ -107,45 +118,49 @@ document.addEventListener('DOMContentLoaded', () => {
             if (playfield[row]) {
                 for (let col = 0; col < COLS; col++) {
                     if (playfield[row][col]) {
-                        drawTile(col, row, playfield[row][col], gameCtx);
+                        drawTile(col, row, playfield[row][col], gameCtx, TILE_SIZE);
                     }
                 }
             }
         }
     }
 
-    function drawBlock(block, ctx, offsetX = 0, offsetY = 0) {
+    function drawBlock(block, ctx, offsetX = 0, offsetY = 0, tileSize = TILE_SIZE) {
         if (!block) return;
         block.matrix.forEach((row, y) => {
             row.forEach((value, x) => {
                 if (value) {
                     if (block.y + y + offsetY >= 0) {
-                        drawTile(block.x + x + offsetX, block.y + y + offsetY, block.type, ctx);
+                        drawTile(block.x + x + offsetX, block.y + y + offsetY, block.type, ctx, tileSize);
                     }
                 }
             });
         });
     }
 
-    function drawTile(x, y, type, ctx) {
+    function drawTile(x, y, type, ctx, tileSize) {
         ctx.fillStyle = COLORS[type];
-        ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+        ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
         ctx.strokeStyle = '#222';
-        ctx.strokeRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+        ctx.strokeRect(x * tileSize, y * tileSize, tileSize, tileSize);
     }
 
     function renderNextBlock() {
         nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
+        if (!nextBlock) return;
         const blockType = TETROMINOS.findIndex(
             (matrix) => JSON.stringify(matrix) === JSON.stringify(nextBlock.matrix)
         ) + 1;
 
         const blockWidth = nextBlock.matrix[0].length;
         const blockHeight = nextBlock.matrix.length;
-        const offsetX = Math.floor((4 - blockWidth) / 2);
-        const offsetY = Math.floor((4 - blockHeight) / 2);
+        const offsetX = (4 - blockWidth) / 2;
+        const offsetY = (4 - blockHeight) / 2;
 
-        drawBlock({ ...nextBlock, type: blockType, x: 0, y: 0 }, nextCtx, offsetX, offsetY);
+        // nextCanvasの幅からタイルサイズを計算
+        const nextTileSize = nextCanvas.width / 4;
+
+        drawBlock({ ...nextBlock, type: blockType, x: 0, y: 0 }, nextCtx, offsetX, offsetY, nextTileSize);
     }
 
     // --- ゴーストブロックの描画 ---
@@ -383,7 +398,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- イベントリスナー ---
-    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('resize', () => {
+        setVhVariable();
+        resizeCanvas();
+    });
 
     // --- 最初の初期化は必ず実行 ---
     init();
