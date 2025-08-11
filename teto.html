@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Tetris</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="info-panel">
+            <div class="info-item">
+                スコア: <span id="score">0</span>
+            </div>
+            <div class="info-item">
+                レベル: <span id="level">1</span>
+            </div>
+            <div id="next-block-container">
+                <div>NEXT</div>
+                <canvas id="next-block-canvas"></canvas>
+            </div>
+        </div>
+        <canvas id="game-canvas"></canvas>
+    </div>
+    
+    <div id="start-screen">
+        <h1>Simple Tetris</h1>
+        <button id="start-button">ゲームスタート</button>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
